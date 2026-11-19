@@ -1,3 +1,5 @@
+let bgImage; // 儲存背景圖片 bg/0.png
+let bgX = 0; // 儲存中間背景圖片的水平中心座標
 let characterSprite; // 儲存角色一的精靈圖
 let walkSprite; // 儲存角色一的走路精靈圖
 let magicSprite; // 儲存角色一的施法精靈圖
@@ -24,7 +26,8 @@ const effectFrameWidth = 740 / effectFrameCount; // 計算魔法特效每格的�
 const effectFrameHeight = 19; // 設定魔法特效每格的高度
 const framesPerStep = 8; // 設定動畫每隔幾個畫面更新一格
 
-function preload() { // 在畫布建立前載入角色圖片
+function preload() { // 在畫布建立前載入背景與角色圖片
+  bgImage = loadImage("bg/0.png"); // 載入背景圖片
   characterSprite = loadImage("1/stop/stop.png"); // 載入角色一的十格精靈圖
   walkSprite = loadImage("1/walk/walk.png"); // 載入角色一的九格走路精靈圖
   magicSprite = loadImage("1/magic/magic.png"); // 載入角色一的四格施法精靈圖
@@ -33,37 +36,77 @@ function preload() { // 在畫布建立前載入角色圖片
 
 function setup() { // 初始化畫布與繪圖模式
   createCanvas(windowWidth, windowHeight); // 建立符合視窗尺寸的畫布
-  imageMode(CENTER); // 讓角色座標代表影格的中心點
-  characterX = (width * 2) / 3; // 將角色初始位置設在畫布寬度的三分之二處
+  imageMode(CENTER); // 讓圖片與角色座標皆代表中心點
+  bgX = width / 2; // 將中間背景圖初始置於畫布正中央
+  characterX = width / 2; // 將角色初始位置設在畫布中央以便向左右捲動
   frameRate(60); // 將動畫更新速率設定為每秒六十格
 } // 結束初始化函式
 
 function draw() { // 每個畫面更新一次背景與角色
-  background("#87CEEB"); // 使用天空藍清除畫布
+  background("#87CEEB"); // 預設底色避免圖片載入前閃爍
+
+  // 計算單張背景圖的顯示尺寸（等比例填滿畫布高度，且寬度至少不小於畫布寬度）
+  const bgScale = max(height / bgImage.height, width / bgImage.width);
+  const bgWidth = bgImage.width * bgScale;
+  const bgHeight = bgImage.height * bgScale;
+
+  // 計算三張背景串接後（總寬度為 3 * bgWidth）的可捲動邊界
+  // 當 bgX 移至 minBgX 時，代表第三張（最右側）背景的右緣已貼齊畫布右緣
+  // 當 bgX 移至 maxBgX 時，代表第一張（最左側）背景的左緣已貼齊畫布左緣
+  const minBgX = width - 1.5 * bgWidth;
+  const maxBgX = 1.5 * bgWidth;
+
   const movingRight = keyIsDown(RIGHT_ARROW); // 檢查右方向鍵目前是否按住
   const movingLeft = keyIsDown(LEFT_ARROW); // 檢查左方向鍵目前是否按住
   isWalking = movingRight || movingLeft; // 沒有按住左右鍵時切回站立動畫
-  const movementStep = constrain(width * 0.004, 2, 8); // 依畫布寬度計算適合不同裝置的移動速度
+  const movementStep = constrain(width * 0.004, 2, 8); // 依畫布寬度計算移動速度
+  const centerX = width / 2; // 畫布水平中心線
+
   if (movingRight) { // 按住右方向鍵時執行右行控制
     isWalking = true; // 切換至走路動畫
     facingDirection = 1; // 設定角色朝向右方
-    characterX += movementStep; // 讓角色向右移動
+    if (characterX < centerX) {
+      // 若角色先前在畫布左半邊，先讓角色走回畫面中央
+      characterX = min(characterX + movementStep, centerX);
+    } else if (bgX > minBgX) {
+      // 角色在中央且背景尚未捲動到最右邊時，背景往左移動
+      bgX = max(bgX - movementStep, minBgX);
+    } else {
+      // 背景已捲動到最右邊界暫停，改為讓角色往右移動
+      characterX += movementStep;
+    }
   } else if (movingLeft) { // 按住左方向鍵且未按右鍵時執行左行控制
     isWalking = true; // 切換至走路動畫
     facingDirection = -1; // 設定角色朝向左方
-    characterX -= movementStep; // 讓角色向左移動
+    if (characterX > centerX) {
+      // 若角色先前在畫布右半邊，先讓角色走回畫面中央
+      characterX = max(characterX - movementStep, centerX);
+    } else if (bgX < maxBgX) {
+      // 角色在中央且背景尚未捲動到最左邊時，背景往右移動
+      bgX = min(bgX + movementStep, maxBgX);
+    } else {
+      // 背景已捲動到最左邊界暫停，改為讓角色往左移動
+      characterX -= movementStep;
+    }
   } // 結束方向鍵移動判斷
 
-  // 【修改處】設定角色一的高度為整個畫布高度的 1/3，並依原本圖片寬高比例計算縮放倍率
-  const characterScale = (height / 3) / frameHeight; // 依畫布高度的 1/3 計算等比例縮放倍率
-  const characterWidth = frameWidth * characterScale; // 依原圖寬高比例計算角色基本顯示寬度
-  const characterHeight = height / 3; // 設定角色基本顯示高度為畫布高度的 1/3
+  // 繪製三張串接連結的背景圖片（左圖、中圖、右圖）
+  image(bgImage, bgX - bgWidth, height / 2, bgWidth, bgHeight);
+  image(bgImage, bgX, height / 2, bgWidth, bgHeight);
+  image(bgImage, bgX + bgWidth, height / 2, bgWidth, bgHeight);
+
+  // 設定角色一的高度為整個畫布高度的 1/3，並依原本圖片寬高比例計算縮放倍率
+  const characterScale = (height / 3) / frameHeight;
+  const characterWidth = frameWidth * characterScale;
+  const characterHeight = height / 3;
 
   characterX = constrain(characterX, characterWidth / 2, width - characterWidth / 2); // 限制角色中心避免超出畫布左右邊界
+
   if (isCasting && frameCount - magicStartFrame >= magicFrameCount * framesPerStep) { // 檢查施法動畫是否已完整播放一次
     isCasting = false; // 結束施法動畫並恢復一般角色動作
     activeEffects.push({ x: characterX + magicDirection * characterWidth / 2, y: height - characterHeight * 0.58, direction: magicDirection }); // 在角色前方建立朝施法方向飛行的特效
   } // 結束施法動畫完成判斷
+
   const activeSprite = isCasting ? magicSprite : isWalking ? walkSprite : characterSprite; // 根據角色狀態選擇施法、走路或站立精靈圖
   const activeFrameCount = isCasting ? magicFrameCount : isWalking ? walkFrameCount : frameCountInSprite; // 取得目前精靈圖的影格總數
   const activeFrameWidth = isCasting ? magicFrameWidth : isWalking ? walkFrameWidth : frameWidth; // 取得目前精靈圖每格的寬度
@@ -71,18 +114,21 @@ function draw() { // 每個畫面更新一次背景與角色
   const elapsedMagicFrames = frameCount - magicStartFrame; // 計算施法動畫已播放的畫面數
   const frameIndex = isCasting ? floor(elapsedMagicFrames / framesPerStep) : floor(frameCount / framesPerStep) % activeFrameCount; // 計算目前要顯示的精靈影格
   const sourceX = frameIndex * activeFrameWidth; // 計算目前影格在精靈圖中的水平起點
-  const activeWidth = activeFrameWidth * characterScale; // 依原圖寬高比例計算目前角色影格的顯示寬度
+  const activeWidth = activeFrameWidth * characterScale; // 計算目前角色影格的顯示寬度
   const activeHeight = activeFrameHeight * characterScale; // 計算目前角色影格的顯示高度
   const characterY = height - activeHeight / 2; // 將目前角色影格底部對齊畫布底部
+
   push(); // 暫存目前的繪圖座標轉換狀態
   translate(characterX, characterY); // 將繪圖原點移至角色中心
   scale(isCasting ? magicDirection : facingDirection, 1); // 依施法或角色朝向決定是否水平翻轉
   image(activeSprite, 0, 0, activeWidth, activeHeight, sourceX, 0, activeFrameWidth, activeFrameHeight); // 裁切並繪製目前角色影格
   pop(); // 還原繪圖座標轉換狀態
+
   const effectScale = characterScale; // 使用角色縮放倍率讓特效適應不同畫布
   const effectWidth = effectFrameWidth * effectScale; // 計算特效影格的顯示寬度
   const effectHeight = effectFrameHeight * effectScale; // 計算特效影格的顯示高度
   const effectSpeed = max(6, width * 0.008); // 依畫布寬度計算特效飛行速度
+
   for (let effectIndex = activeEffects.length - 1; effectIndex >= 0; effectIndex--) { // 由後往前更新所有飛行中的特效
     const effect = activeEffects[effectIndex]; // 取得目前更新的特效資料
     effect.x += effect.direction * effectSpeed; // 依特效方向更新水平位置
@@ -129,5 +175,6 @@ function keyReleased() { // 鍵盤按鍵放開時更新按鍵狀態
 
 function windowResized() { // 視窗尺寸改變時重新調整畫布
   resizeCanvas(windowWidth, windowHeight); // 將畫布同步為新的視窗尺寸
+  bgX = width / 2; // 重新置中背景座標避免視窗縮放後邊界偏移
   characterX = constrain(characterX, 1, width - 1); // 將角色位置限制在縮放後畫布內
 } // 結束視窗縮放處理函式
