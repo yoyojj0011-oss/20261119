@@ -1,4 +1,4 @@
-let bgImage; // 儲存背景圖片 bg/0.png
+let bgImage; // 儲存背景圖片 bg/bg1.png
 let bgX = 0; // 儲存中間背景圖片的水平中心座標
 let characterSprite; // 儲存角色一的精靈圖
 let walkSprite; // 儲存角色一的走路精靈圖
@@ -27,7 +27,7 @@ const effectFrameHeight = 19; // 設定魔法特效每格的高度
 const framesPerStep = 8; // 設定動畫每隔幾個畫面更新一格
 
 function preload() { // 在畫布建立前載入背景與角色圖片
-  bgImage = loadImage("bg/0.png"); // 載入背景圖片
+  bgImage = loadImage("bg/bg1.png"); // 【已修正】載入正確的背景圖片 bg/bg1.png
   characterSprite = loadImage("1/stop/stop.png"); // 載入角色一的十格精靈圖
   walkSprite = loadImage("1/walk/walk.png"); // 載入角色一的九格走路精靈圖
   magicSprite = loadImage("1/magic/magic.png"); // 載入角色一的四格施法精靈圖
@@ -51,8 +51,6 @@ function draw() { // 每個畫面更新一次背景與角色
   const bgHeight = bgImage.height * bgScale;
 
   // 計算三張背景串接後（總寬度為 3 * bgWidth）的可捲動邊界
-  // 當 bgX 移至 minBgX 時，代表第三張（最右側）背景的右緣已貼齊畫布右緣
-  // 當 bgX 移至 maxBgX 時，代表第一張（最左側）背景的左緣已貼齊畫布左緣
   const minBgX = width - 1.5 * bgWidth;
   const maxBgX = 1.5 * bgWidth;
 
@@ -66,26 +64,20 @@ function draw() { // 每個畫面更新一次背景與角色
     isWalking = true; // 切換至走路動畫
     facingDirection = 1; // 設定角色朝向右方
     if (characterX < centerX) {
-      // 若角色先前在畫布左半邊，先讓角色走回畫面中央
       characterX = min(characterX + movementStep, centerX);
     } else if (bgX > minBgX) {
-      // 角色在中央且背景尚未捲動到最右邊時，背景往左移動
       bgX = max(bgX - movementStep, minBgX);
     } else {
-      // 背景已捲動到最右邊界暫停，改為讓角色往右移動
       characterX += movementStep;
     }
   } else if (movingLeft) { // 按住左方向鍵且未按右鍵時執行左行控制
     isWalking = true; // 切換至走路動畫
     facingDirection = -1; // 設定角色朝向左方
     if (characterX > centerX) {
-      // 若角色先前在畫布右半邊，先讓角色走回畫面中央
       characterX = max(characterX - movementStep, centerX);
     } else if (bgX < maxBgX) {
-      // 角色在中央且背景尚未捲動到最左邊時，背景往右移動
       bgX = min(bgX + movementStep, maxBgX);
     } else {
-      // 背景已捲動到最左邊界暫停，改為讓角色往左移動
       characterX -= movementStep;
     }
   } // 結束方向鍵移動判斷
