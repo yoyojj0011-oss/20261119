@@ -1,4 +1,4 @@
-let bgImage; // 儲存背景圖片 bg/bg1.png
+let bgImage; // 儲存背景圖片 1/bg/bg1.png
 let bgX = 0; // 儲存中間背景圖片的水平中心座標
 let characterSprite; // 儲存角色一的精靈圖
 let walkSprite; // 儲存角色一的走路精靈圖
@@ -27,7 +27,7 @@ const effectFrameHeight = 19; // 設定魔法特效每格的高度
 const framesPerStep = 8; // 設定動畫每隔幾個畫面更新一格
 
 function preload() { // 在畫布建立前載入背景與角色圖片
-  bgImage = loadImage("bg/bg1.png"); // 【已修正】載入正確的背景圖片 bg/bg1.png
+  bgImage = loadImage("1/bg/bg1.png"); // 載入 1/bg 資料夾內的背景圖片 bg1.png
   characterSprite = loadImage("1/stop/stop.png"); // 載入角色一的十格精靈圖
   walkSprite = loadImage("1/walk/walk.png"); // 載入角色一的九格走路精靈圖
   magicSprite = loadImage("1/magic/magic.png"); // 載入角色一的四格施法精靈圖
